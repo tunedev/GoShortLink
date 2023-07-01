@@ -46,17 +46,19 @@ Make sure to set the required environment variables.
 
 Send `POST` request to `http://localhost:9900/shorten` with a JSON body of the following structure:
 
-````JSON
+```JSON
 {
   "long_url": "https://example.com/some_long_url/with/long_query_params?short=false"
-}```
+}
+```
 
 The service will return a JSON response with the shortened URL:
 
 ```JSON
 {
   "long_url": "http://localhost:9900/abc123"
-}```
+}
+```
 
 #### Redirect to Original URL
 
@@ -66,10 +68,10 @@ Simply navigate to the shortened URL (for example, `http://localhost:9900/abc123
 
 The application can be configured using the following environment variables:
 
-* `MONGO_URI`: The MongoDB connection string. Default is `mongodb://localhost:27017`.
-* `DB_NAME`: The MongoDB database name. Default is 'goshortlink'
-* `COLLECTION_NAME`: The MongoDB collection name. Default is 'urls'
-* `PORT`: The port on which the server runs. Default is '9900'
+- `MONGO_URI`: The MongoDB connection string. Default is `mongodb://localhost:27017`.
+- `DB_NAME`: The MongoDB database name. Default is 'goshortlink'
+- `COLLECTION_NAME`: The MongoDB collection name. Default is 'urls'
+- `PORT`: The port on which the server runs. Default is '9900'
 
 ### Contribution
 
@@ -78,4 +80,3 @@ Contributions are always welcome! Please feel free to submit a Pull Request or O
 License
 
 This project is MIT licensed.
-````
