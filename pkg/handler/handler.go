@@ -2,11 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
-
-	"math/big"
 
 	"github.com/tunedev/GoShortLink/pkg/model"
 	"github.com/tunedev/GoShortLink/pkg/store"
@@ -29,19 +29,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.Shorten(w, r)
-	case "/":
+	default:
 		if r.Method != http.MethodGet {
 			http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
 			return
 		}
 		h.Redirect(w, r)
-	default:
-		http.NotFound(w, r)
 	}
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[len("/"):]
+	fmt.Printf("db query for url :=== %v\n", shortUrl)
 	url, err := h.store.GetUrlByShortURL(r.Context(), shortUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -53,24 +52,23 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	var reqUrl model.Url
-	err := json.NewDecoder(r.Body).Decode(&reqUrl)
-	println("is it getting here =========>>>>>>>>>")
+  err := json.NewDecoder(r.Body).Decode(&reqUrl)
 	if err != nil || reqUrl.LongUrl == "" {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
+	
 	existingUrl, err := h.store.GetUrlByLongURL(r.Context(), reqUrl.LongUrl)
-
+	
 	if err == nil {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(existingUrl)
 		return
 	} else if err != mongo.ErrNoDocuments {
-		http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
-		return
+			http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
+			return
 	}
-
+		
 	reqUrl.CreatedAt = time.Now()
 	err = h.store.SaveUrl(r.Context(), &reqUrl)
 	if err != nil {
@@ -78,7 +76,9 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqUrl.ShortUrl = base62Encode(reqUrl.ID)
+	reqUrl.ShortUrl = base62Encode(strings.TrimPrefix(reqUrl.ID, "id_"))
+	fmt.Printf("after base64Conversion : %#v\n",reqUrl)
+
 
 	err = h.store.UpdateUrl(r.Context(), &reqUrl)
 	if err != nil {
@@ -86,21 +86,40 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	urls, err := h.store.GetAllUrls(r.Context())
+	if err != nil {
+		fmt.Printf("Error occured: %v",err)
+		http.Error(w, "Failed to fetch all short URLs", http.StatusInternalServerError)
+		return
+	}
+	urlsVal := make([]model.Url, len(urls))
+	for i, v := range urls {
+		urlsVal[i] = *v
+	}
+	fmt.Printf("Entries in the DB: %#v", urlsVal)
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(reqUrl)
 }
 
-func base62Encode(uuid string) string {
-	uuid = strings.ReplaceAll(uuid, "-", "")
-
-	n := new(big.Int)
-	n.SetString(uuid, 16)
-
-	const chars = "0123456789abcdefgjijklmnoqprstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	s := ""
-	for n.Cmp(big.NewInt(0)) > 0 {
-		s = string(chars[int(new(big.Int).Mod(n, big.NewInt(62)).Int64())]) + s
-		n.Div(n, big.NewInt(62))
+func base62Encode(str string) string {
+	id := new(big.Int)
+	id.SetString(str, 10)
+	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	if id.Cmp(big.NewInt(0)) == 0 {
+		return string(chars[0])
 	}
+
+	s := ""
+	n := new(big.Int).Set(id) // make a copy of id
+	zero := big.NewInt(0)
+	mod := new(big.Int)
+	base := big.NewInt(62)
+
+	for n.Cmp(zero) > 0 {
+		n.DivMod(n, base, mod)
+		s = string(chars[mod.Int64()]) + s
+	}
+
 	return s
 }

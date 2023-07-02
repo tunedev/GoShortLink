@@ -1,10 +1,12 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Url struct {
-	ID string `bson:"_id"`
-	ShortUrl string `bson:"short_url"`
-	LongUrl string `bson:"long_url"`
-	CreatedAt time.Time `bson:"created_at"`
+	ID        string    `json:"id" bson:"_id,omitempty"`
+	ShortUrl  string    `json:"short_url" bson:"short_url,omitempty"`
+	LongUrl   string    `json:"long_url" bson:"long_url,omitempty"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at,omitempty"`
 }
