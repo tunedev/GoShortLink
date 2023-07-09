@@ -55,6 +55,10 @@ func NewStore(uri string) (*Store, error) {
 
 	db := client.Database(dbName)
 
+	if err != nil {
+		return nil, err
+	}
+
 	nodeID, err := getIPNodeID()
 	if err != nil {
 		return nil, err

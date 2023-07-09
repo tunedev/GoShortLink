@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -54,9 +55,17 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	var reqUrl model.Url
   err := json.NewDecoder(r.Body).Decode(&reqUrl)
 	if err != nil || reqUrl.LongUrl == "" {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
+
+	// Validate URL
+	_, err = url.ParseRequestURI(reqUrl.LongUrl)
+	if err != nil {
+		http.Error(w, "Invalid URL format", http.StatusBadRequest)
+		return
+	}
+
 	
 	existingUrl, err := h.store.GetUrlByLongURL(r.Context(), reqUrl.LongUrl)
 	
