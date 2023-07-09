@@ -42,6 +42,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[len("/"):]
 	fmt.Printf("db query for url :=== %v\n", shortUrl)
+	if shortUrl == "" {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Short url required", http.StatusBadRequest)
+			return
+		}
+	}
 	url, err := h.store.GetUrlByShortURL(r.Context(), shortUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
